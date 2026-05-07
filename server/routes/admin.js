@@ -35,27 +35,27 @@ const upload = multer({
 });
 
 // POST /api/admin/upload — multipart, field name: "photos" (one or many)
-router.post('/admin/upload', upload.array('photos', 50), async (req, res) => {
+//
+// Fire-and-forget: face detection takes ~5-10s per image on a free-tier box
+// and the queue is concurrency=1, so awaiting Promise.all for a 5-photo batch
+// can run 30-60s — long enough for hosting proxies (Render's Cloudflare,
+// Vercel's edge, etc.) to kill the upstream connection with a 502. We
+// enqueue here and return immediately; the client tracks progress via the
+// `new_photo` Socket.IO event emitted as each image finishes ingesting.
+router.post('/admin/upload', upload.array('photos', 50), (req, res) => {
   if (!req.files || !req.files.length) {
     return res.status(400).json({ error: 'No files uploaded (field name: "photos")' });
   }
   const eventId = (req.body && req.body.eventId) || config.defaultEventId;
 
-  // Files are already saved to uploadsDir, which the chokidar watcher is
-  // observing — but waiting on chokidar would make the response racy. We
-  // explicitly enqueue ingestion here and return the job count.
-  const jobs = req.files.map((f) =>
-    ingestImage(f.path, { eventId }).catch((err) => ({ error: err.message, file: f.filename }))
-  );
-
-  try {
-    const results = await Promise.all(jobs);
-    log.info('Admin bulk upload complete', { count: results.length, eventId });
-    res.json({ ok: true, eventId, results });
-  } catch (err) {
-    log.error('Admin upload failed', { err: err.message });
-    res.status(500).json({ error: err.message });
+  for (const f of req.files) {
+    ingestImage(f.path, { eventId }).catch((err) =>
+      log.error('Ingest failed', { file: f.filename, err: err.message })
+    );
   }
+
+  log.info('Admin bulk upload queued', { count: req.files.length, eventId });
+  res.json({ ok: true, eventId, queued: req.files.length });
 });
 
 module.exports = router;
