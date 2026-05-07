@@ -15,9 +15,14 @@ export default function Admin() {
   const [stats, setStats] = useState(null);
   const [feed, setFeed] = useState([]);
 
+  // Direct backend URL for uploads. Vercel's edge proxy caps multipart bodies
+  // at ~4.5MB on Hobby plan, which kills bulk photo ingest. Going direct lets
+  // the upload travel only client → backend (CORS-enabled).
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
   async function refreshStats() {
     try {
-      const r = await fetch('/api/stats');
+      const r = await fetch(`${API_URL}/api/stats`);
       setStats(await r.json());
     } catch {
       /* server may still be booting */
@@ -50,9 +55,16 @@ export default function Admin() {
     setError(null);
     setResult(null);
     try {
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      const res = await fetch(`${API_URL}/api/admin/upload`, { method: 'POST', body: fd });
+      // Read as text first so we can give a useful error when the backend
+      // returned a non-JSON body (proxy 413, gateway timeout, plain HTML).
+      const text = await res.text();
+      let json = null;
+      try { json = text ? JSON.parse(text) : null; } catch { /* not JSON */ }
+      if (!res.ok) {
+        throw new Error((json && json.error) || `HTTP ${res.status}: ${text.slice(0, 200) || 'empty response'}`);
+      }
+      if (!json) throw new Error('Empty response from server.');
       setResult(json);
       refreshStats();
     } catch (err) {

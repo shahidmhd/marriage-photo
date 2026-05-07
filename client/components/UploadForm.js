@@ -176,9 +176,17 @@ export default function UploadForm({ onMatches, defaultEventId = '' }) {
 
     setBusy(true);
     try {
-      const res = await fetch('/api/upload-selfie', { method: 'POST', body: fd });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      // Hit the backend directly — Vercel's edge proxy caps multipart at
+      // ~4.5MB on Hobby plan, which can drop large phone selfies.
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(`${apiUrl}/api/upload-selfie`, { method: 'POST', body: fd });
+      const text = await res.text();
+      let json = null;
+      try { json = text ? JSON.parse(text) : null; } catch { /* not JSON */ }
+      if (!res.ok) {
+        throw new Error((json && json.error) || `HTTP ${res.status}: ${text.slice(0, 200) || 'empty response'}`);
+      }
+      if (!json) throw new Error('Empty response from server.');
       onMatches?.(json);
     } catch (err) {
       setError(err.message);
