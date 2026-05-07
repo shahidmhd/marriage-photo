@@ -1,0 +1,15 @@
+{
+  "watch": ["server", ".env"],
+  "ext": "js,json",
+  "ignore": [
+    "client/**",
+    "data/**",
+    "uploads/**",
+    "selfies/**",
+    "models/**",
+    "node_modules/**",
+    "scripts/**"
+  ],
+  "delay": "1500",
+  "verbose": false
+}

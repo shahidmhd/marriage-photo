@@ -1,0 +1,41 @@
+{
+  "name": "wedding-face-match",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Face recognition photo matching system for wedding/event platforms",
+  "main": "server/index.js",
+  "scripts": {
+    "server": "node server/index.js",
+    "server:dev": "nodemon server/index.js",
+    "client": "npm --prefix client run dev",
+    "client:wait": "wait-on -t 60000 http-get://127.0.0.1:4000/api/health && npm --prefix client run dev",
+    "client:build": "npm --prefix client run build",
+    "client:start": "npm --prefix client run start",
+    "dev": "concurrently -n server,client -c blue,green --kill-others-on-fail \"npm run server:dev\" \"npm run client:wait\"",
+    "install:all": "npm install && npm --prefix client install",
+    "fetch:models": "node scripts/fetchModels.js",
+    "seed:uploads": "node scripts/seedUploads.js",
+    "reset:index": "node scripts/resetIndex.js"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-backend-wasm": "^4.22.0",
+    "@vladmandic/face-api": "^1.7.15",
+    "canvas": "^2.11.2",
+    "chokidar": "^3.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "hnswlib-node": "^3.0.0",
+    "mongoose": "^8.8.0",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.1",
+    "p-queue": "^6.6.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0",
+    "nodemon": "^3.1.4",
+    "wait-on": "^8.0.5"
+  }
+}

@@ -1,0 +1,23 @@
+node_modules/
+.next/
+.env
+.env.local
+
+# Runtime data — keep folders, ignore contents
+uploads/*
+!uploads/.gitkeep
+selfies/*
+!selfies/.gitkeep
+data/*
+!data/.gitkeep
+
+# face-api models are downloaded by scripts/fetchModels.js
+models/*
+!models/.gitkeep
+
+# Logs / OS
+*.log
+.DS_Store
+
+# Local Claude Code settings
+.claude/
